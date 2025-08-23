@@ -3,6 +3,7 @@ import CustomError from "./CustomError"
 import * as jose from 'jose'
 
 export function errorHandler(err: unknown): { message: string, status: number } {
+  console.log(err)
   if (err instanceof ZodError) {
     const errors = err.issues
     const message = errors.map(el => `${el.path}: ${el.message}`).toString()
