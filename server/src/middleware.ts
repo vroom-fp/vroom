@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import CustomError from "./server/helpers/CustomError";
 import * as jose from 'jose'
@@ -9,15 +8,19 @@ export async function middleware(request: NextRequest) {
     const api = request.nextUrl.pathname.startsWith("/api")
     const routes = ["/api/profile", "/api/wishlist", "/api/trips"]
     const currentRoute = request.nextUrl.pathname
-    const cookieStore = await cookies()
     
     if (api) {
-      if (routes.includes(currentRoute)) {
+      if (routes.some(route => currentRoute.startsWith(route))) {
+        
         const authorization = request.headers.get('authorization')
         if (!authorization) throw new CustomError("Unauthorized", 401)
+        const rawToken = authorization.split(" ")
+        
+        const tokenValue = rawToken[1]
+        
         const secret = new TextEncoder().encode(process.env.SECRET_KEY)
 
-        const { payload } = await jose.jwtVerify<{ id: string, email: string }>(authorization, secret)
+        const { payload } = await jose.jwtVerify<{ id: string, email: string }>(tokenValue, secret)
 
         const newHeader = new Headers(request.headers)
         newHeader.set("x-user-id", payload.id)
@@ -26,7 +29,7 @@ export async function middleware(request: NextRequest) {
         const response = NextResponse.next({
           headers: newHeader
         })
-
+        
         return response
       }
     }
