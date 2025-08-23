@@ -21,7 +21,7 @@ interface ToggleVisitedRequest {
 }
 
 // Helper function to clean ORM data
-function cleanWishlistData(item: any) {
+function cleanWishlistData(item: IWishlist | Record<string, unknown>) {
   // Convert to plain object to remove all ORM metadata
   const plainObject = JSON.parse(JSON.stringify(item))
   
@@ -52,7 +52,9 @@ export async function GET(req: NextRequest) {
 
     // Get all wishlist items and filter by userId manually
     const allWishlistItems = await Wishlist.all()
-    const userWishlistItems = allWishlistItems.filter((item: any) => item.userId === userId)
+    const userWishlistItems = allWishlistItems.filter((item: IWishlist | Record<string, unknown>) => 
+      (item as IWishlist).userId === userId
+    )
 
     let filteredItems = userWishlistItems
 
@@ -60,14 +62,18 @@ export async function GET(req: NextRequest) {
     if (filter === 'all') {
       filteredItems = userWishlistItems // Show all items
     } else if (filter === 'unvisited') {
-      filteredItems = userWishlistItems.filter((item: any) => item.isVisited === false)
+      filteredItems = userWishlistItems.filter((item: IWishlist | Record<string, unknown>) => 
+        (item as IWishlist).isVisited === false
+      )
     } else {
       // Default: only show visited items
-      filteredItems = userWishlistItems.filter((item: any) => item.isVisited === true)
+      filteredItems = userWishlistItems.filter((item: IWishlist | Record<string, unknown>) => 
+        (item as IWishlist).isVisited === true
+      )
     }
 
     // Clean the data to remove ORM metadata
-    const cleanData = filteredItems.map((item: any) => cleanWishlistData(item))
+    const cleanData = filteredItems.map((item: IWishlist | Record<string, unknown>) => cleanWishlistData(item))
 
     return Response.json({
       success: true,
@@ -110,10 +116,10 @@ export async function POST(req: NextRequest) {
 
     // Check if item already exists in user's wishlist
     const allWishlistItems = await Wishlist.all()
-    const existingItem = allWishlistItems.find((item: any) => 
-      item.userId === userId && 
-      item.source.name === body.source.name &&
-      item.source.location === body.source.location
+    const existingItem = allWishlistItems.find((item: IWishlist | Record<string, unknown>) => 
+      (item as IWishlist).userId === userId && 
+      (item as IWishlist).source.name === body.source.name &&
+      (item as IWishlist).source.location === body.source.location
     )
 
     if (existingItem) {
@@ -176,7 +182,7 @@ export async function PUT(req: NextRequest) {
 
     try {
       // Find the item by ID
-      const item = await Wishlist.find(body.wishlistId)
+      const item = await Wishlist.find(body.wishlistId) as unknown as IWishlist | null
       
       if (!item) {
         return Response.json(
@@ -186,7 +192,7 @@ export async function PUT(req: NextRequest) {
       }
 
       // Check if item belongs to user
-      if ((item as any).userId !== userId) {
+      if (item.userId !== userId) {
         return Response.json(
           { success: false, message: "Unauthorized access to wishlist item" },
           { status: 403 }
@@ -195,10 +201,10 @@ export async function PUT(req: NextRequest) {
 
       // Prepare updated data - keep everything same, only change isVisited
       const updatedData = {
-        userId: (item as any).userId,
-        isVisited: !(item as any).isVisited,  // Toggle isVisited
-        source: (item as any).source,         // Keep source data same
-        createdAt: (item as any).createdAt,   // Keep original creation time
+        userId: item.userId,
+        isVisited: !item.isVisited,  // Toggle isVisited
+        source: item.source,         // Keep source data same
+        createdAt: (item as unknown as Record<string, unknown>).createdAt as Date,   // Keep original creation time
         updatedAt: new Date()                 // Update timestamp
       }
       
@@ -215,7 +221,7 @@ export async function PUT(req: NextRequest) {
         data: cleanData
       }, { status: 200 })
 
-    } catch (findError) {
+    } catch (error) {
       return Response.json(
         { success: false, message: "Wishlist item not found" },
         { status: 404 }
@@ -256,7 +262,7 @@ export async function DELETE(req: NextRequest) {
 
     try {
       // Find the item by ID
-      const item = await Wishlist.find(wishlistId)
+      const item = await Wishlist.find(wishlistId) as unknown as IWishlist | null
       
       if (!item) {
         return Response.json(
@@ -266,7 +272,7 @@ export async function DELETE(req: NextRequest) {
       }
 
       // Check if item belongs to user
-      if ((item as any).userId !== userId) {
+      if (item.userId !== userId) {
         return Response.json(
           { success: false, message: "Unauthorized access to wishlist item" },
           { status: 403 }
@@ -281,7 +287,7 @@ export async function DELETE(req: NextRequest) {
         message: "Item removed from wishlist successfully"
       }, { status: 200 })
 
-    } catch (findError) {
+    } catch (error) {
       return Response.json(
         { success: false, message: "Wishlist item not found" },
         { status: 404 }
