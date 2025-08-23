@@ -11,7 +11,6 @@ export async function GET (req: NextRequest) {
     
     return Response.json({user}, {status: 200})
   } catch (err : unknown) {
-      console.log(err)
       const { message, status } = errorHandler(err)
       return Response.json({ message }, { status })
   }
