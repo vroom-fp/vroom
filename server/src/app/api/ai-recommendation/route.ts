@@ -180,8 +180,16 @@ export async function POST(req: NextRequest) {
     try {
         console.log("Processing AI recommendation request...")
 
+        // Get userId from middleware (if user is authenticated)
+        const userId = req.headers.get('x-user-id')
+        console.log("User ID from middleware:", userId)
+
         // Parse and validate request
         const request = await parseRequestBody(req)
+        // Add userId to request if available
+        if (userId) {
+            request.userId = userId
+        }
         console.log("Request validated for location:", request.location)
 
         // Determine category
@@ -196,10 +204,33 @@ export async function POST(req: NextRequest) {
 
         return Response.json({
             success: true,
-            data: aiResponse,
+            data: {
+                ...aiResponse,
+                // Tambahkan informasi untuk frontend
+                recommendations: aiResponse.recommendations.map(rec => ({
+                    ...rec,
+                    // Tambahkan metadata untuk wishlist
+                    wishlistData: {
+                        name: rec.name,
+                        description: rec.description,
+                        location: rec.location,
+                        category: rec.category,
+                        estimatedCost: rec.estimatedCost,
+                        rating: rec.rating,
+                        highlights: rec.highlights,
+                        aiRecommendationId: savedRecommendation?._id || `temp_${Date.now()}`
+                    }
+                }))
+            },
             location: request.location,
             requestId: savedRecommendation?._id || `temp_${Date.now()}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            // Tambahkan info wishlist API
+            wishlistInfo: {
+                addToWishlistEndpoint: "/api/wishlist",
+                method: "POST",
+                note: "Use wishlistData from each recommendation to add to wishlist"
+            }
         }, { status: 200 })
 
     } catch (error) {
