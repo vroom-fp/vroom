@@ -11,7 +11,8 @@ import cloudinary from "@/config/cloudinary";
 export async function GET(_req: NextRequest) { // Tambah underscore untuk unused variable
   try {
     const posts = await Post.all();
-    const postsWithTripAndUser = await Promise.all(posts.map(async post => {
+    const postsSorted = posts.sortBy('createdAt', 'desc')
+    const postsWithTripAndUser = await Promise.all(postsSorted.map(async post => {
       const trip = post.tripId
         ? await Trip.where('_id', new ObjectId(post.tripId)).first()
         : null;
