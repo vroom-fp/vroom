@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken'
 import { IMongoloquentSchema, IMongoloquentTimestamps, Model } from "mongoloquent";
 import Post from "./Post";
 
-interface IUser extends IMongoloquentSchema, IMongoloquentTimestamps {
+export interface IUser extends IMongoloquentSchema, IMongoloquentTimestamps {
   name : string,
   email: string,
   password: string
