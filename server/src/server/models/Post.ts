@@ -1,5 +1,6 @@
 import { IMongoloquentSchema, IMongoloquentTimestamps, Model } from "mongoloquent";
 import Trip, { ITrip } from "./Trip";
+import User from "./User";
 
 export interface IPost extends IMongoloquentSchema, IMongoloquentTimestamps {
   userId: string;
@@ -14,5 +15,9 @@ export default class Post extends Model<IPost> {
 
   public trip () {
     return this.hasOne(Trip)
+  }
+
+  public user () {
+    return this.hasOne(User)
   }
 }

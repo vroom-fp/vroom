@@ -4,6 +4,7 @@ import z, { ZodError } from "zod";
 import CustomError from "../helpers/CustomError";
 import jwt from 'jsonwebtoken'
 import { IMongoloquentSchema, IMongoloquentTimestamps, Model } from "mongoloquent";
+import Post from "./Post";
 
 interface IUser extends IMongoloquentSchema, IMongoloquentTimestamps {
   name : string,
@@ -15,4 +16,8 @@ interface IUser extends IMongoloquentSchema, IMongoloquentTimestamps {
 export default class User extends Model<IUser> {
   public static $schema: IUser
   protected $collection: string = 'users'; 
+
+  public post () {
+    return this.belongsToMany(Post)
+  }
 }
