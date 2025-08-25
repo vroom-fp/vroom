@@ -2,14 +2,52 @@ import { errorHandler } from "@/server/helpers/ErrorHandler";
 import Post, { IPost } from "@/server/models/Post";
 import Trip from "@/server/models/Trip";
 import User from "@/server/models/User";
+import Comment from "@/server/models/Comment";
+import Like from "@/server/models/Like";
 import { ObjectId } from "mongodb";
 import { NextRequest } from "next/server";
 import CustomError from "@/server/helpers/CustomError";
 import cloudinary from "@/config/cloudinary";
 
+// Type interfaces
+interface PostRecord {
+  _id?: string;
+  $id?: string;
+  userId: string;
+  tripId: string;
+  caption?: string;
+  imageUrls?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
 
-export async function GET(_req: NextRequest) { // Tambah underscore untuk unused variable
+interface CommentRecord {
+  _id?: string;
+  $id?: string;
+  userId: string;
+  postId: string;
+  content: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
+interface LikeRecord {
+  _id?: string;
+  $id?: string;
+  userId: string;
+  postId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
+
+export async function GET(req: NextRequest) { 
   try {
+    const userId = req.headers.get('x-user-id'); // Get current user for like status
+    
     const posts = await Post.all();
     const postsSorted = posts.sortBy('createdAt', 'desc')
     const postsWithTripAndUser = await Promise.all(postsSorted.map(async post => {
@@ -23,11 +61,36 @@ export async function GET(_req: NextRequest) { // Tambah underscore untuk unused
       
       // Hapus password dari user jika ada
       const userWithoutPassword = user ? (() => {
-        const { password: _password, ...rest } = user; // Tambah underscore untuk unused variable
+        const { password: _password, ...rest } = user;
         return rest;
       })() : null;
+
+      // Get comment count dan like count
+      const postRecord = post as unknown as PostRecord;
+      const postId = postRecord._id || postRecord.$id;
+      const postIdString = postId?.toString() || '';
       
-      return { ...post, trip, user: userWithoutPassword };
+      // Get all comments for this post
+      const commentsCollection = await Comment.all();
+      const allComments = Array.from(commentsCollection) as unknown as CommentRecord[];
+      const postComments = allComments.filter((comment: CommentRecord) => comment.postId === postIdString);
+      
+      // Get all likes for this post
+      const likesCollection = await Like.all();
+      const allLikes = Array.from(likesCollection) as unknown as LikeRecord[];
+      const postLikes = allLikes.filter((like: LikeRecord) => like.postId === postIdString);
+      
+      // Check if current user liked this post
+      const isLikedByCurrentUser = userId ? postLikes.some((like: LikeRecord) => like.userId === userId) : false;
+      
+      return { 
+        ...post, 
+        trip, 
+        user: userWithoutPassword,
+        commentCount: postComments.length,
+        likeCount: postLikes.length,
+        isLiked: isLikedByCurrentUser
+      };
     }));
     return Response.json({ posts: postsWithTripAndUser }, { status: 200 });
   } catch (err: unknown) {
