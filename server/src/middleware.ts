@@ -6,7 +6,7 @@ import { errorHandler } from "./server/helpers/ErrorHandler";
 export async function middleware(request: NextRequest) {
   try {
     const api = request.nextUrl.pathname.startsWith("/api")
-    const routes = ["/api/profile", "/api/wishlist", "/api/trips", "/api/post"]
+    const routes = ["/api/profile", "/api/wishlist", "/api/trips", "/api/post", "/api/comments", "/api/likes"]
     const currentRoute = request.nextUrl.pathname
     
     if (api) {
